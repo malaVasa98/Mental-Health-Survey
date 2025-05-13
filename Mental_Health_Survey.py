@@ -56,14 +56,8 @@ class DeepMedical(nn.Module):
 # Load the model
 model_mental = torch.load('medical_model.pth')
 
-# Load the scaler
-mental_sc = joblib.load('Mental_scaled.pkl')
-
-# Load the ordinal encoder 
-mental_ord = joblib.load('Mental_ordinal.pkl')
-
-# Load the onehot encoder
-mental_ohe = joblib.load('Mental_onehot.pkl')
+# Load the preprocessor
+model_preprocess = joblib.load('Preprocess.pkl')
 
 if sel=="Predict Depression Status":
     col1, col2 = st.columns(2)
@@ -86,16 +80,23 @@ if sel=="Predict Depression Status":
         diet = st.selectbox('**Dietary Habits**',DIETARY,index=None)
         
         if st.button("Depression Status"):
-            X_unk = np.array([[float(age),work_pre,job_sat,work_study_hr,fin_str,
-                               deg,suic_tht,fam_ill,
-                                gender,city,prof_or_stud,profession,slp_dur,diet]])
-            X_unnum = X_unk[:,0:5]
-            X_unord = X_unk[:,5:8]
-            X_unohe = X_unk[:,8:]
-            X_unnum = mental_sc.transform(X_unnum)
-            X_unord = mental_ord.transform(X_unord)
-            X_unohe = mental_ohe.transform(X_unohe)
-            X_unk_up = np.concatenate([X_unnum,X_unord,X_unohe],axis=1)
+            X_unk = pd.DataFrame({
+            'Age':[float(age)],
+            'Work Pressure':[work_pre],
+            'Job Satisfaction':[job_sat],
+            'Work/Study Hours':[work_study_hr],
+            'Financial Stress':[fin_str],
+            'Degree':[deg],
+            'Have you ever had suicidal thoughts ?':[suic_tht],
+            'Family History of Mental Illness':[fam_ill],
+            'Gender':[gender],
+            'City':[city],
+            'Working Professional or Student':[prof_or_stud],
+            'Profession':[profession],
+            'Sleep Duration':[slp_dur],
+            'Dietary Habits':[diet]
+        })
+            X_unk_up = model_preprocess.transform(X_unk)
             X_unk_tens = torch.tensor(X_unk_up,dtype=torch.float32)
 
             model_mental.eval()
